@@ -1,18 +1,19 @@
 # GBEmu - Game Boy Emulator
 
-A high-performance Game Boy (DMG-only) emulator written in C++20, featuring a modular architecture with independent PPU and APU libraries
+A high-performance Game Boy (DMG-only) emulator written in C++20, featuring a modular architecture with independent PPU and APU libraries.
 
 ## Features
 
+ - **Save states**
  - **Controller support**
    - Bluetooth, wired
  - **RAM saving**
- - **Save states**
- - **Fully automated Blargg & Mooneye testing (See below)**
- - **Fast**
- - **Modular, APU and PPU can be plugged into any emulator with no other dependencies**
+ - **Boot ROM support**
+ - **Modular: APU and PPU can be plugged into any emulator with no other dependencies**
  - **Accurate, passes every blargg and almost every mooneye test for DMG**
  - Windows only for now, but code structured to easily swap OS out.
+ - **Fully automated Blargg & Mooneye testing (See below)**
+ - **Fast**
 
 ## Architecture
 
@@ -21,7 +22,7 @@ A high-performance Game Boy (DMG-only) emulator written in C++20, featuring a mo
 This emulator is built with a modular design, featuring two completely independent libraries that can be dropped into any other project:
 
 #### **PPU (Picture Processing Unit) Library**
-The PPU library (`ppu/`) is a self-contained module with zero external dependencies. It handles all video processing, rendering, and display logic:
+The PPU library (`ppu/`) is a self-contained module with zero external dependencies. It handles all video processing, rendering, and display logic.
 
 
 #### **APU (Audio Processing Unit) Library**
