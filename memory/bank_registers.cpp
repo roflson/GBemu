@@ -78,7 +78,6 @@ void BankRegisters::write(uint16_t address, uint8_t value) {
         bank1_ = value & MBCConstants::MBC2_ROM_BANK_MASK;
         if (bank1_ == 0)
           bank1_ = 1;
-        std::cout << "MBC2 Set Bank1: " << (int)bank1_ << std::endl;
         break;
     }
   }
