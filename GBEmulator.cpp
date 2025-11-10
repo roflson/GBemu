@@ -218,14 +218,12 @@ void GBEmulator::run() {
       }
     } else {
       // Idle loop: process events until user opens a ROM
-      while (!window_.handleEvents(joypad_state)) {
-        window_.clear();
-        window_.present();
-        std::this_thread::sleep_for(std::chrono::milliseconds(IDLE_LOOP_SLEEP_MS));
-        if (loop_) {
-          break;
-        }
+      if (window_.handleEvents(joypad_state)) {
+        return;  // Quit requested
       }
+      window_.clear();
+      window_.present();
+      std::this_thread::sleep_for(std::chrono::milliseconds(IDLE_LOOP_SLEEP_MS));
     }
   }
 }

@@ -17,7 +17,7 @@ The APU library (`apu/`) is similarly self-contained and handles all audio gener
 
 Both libraries are compiled as separate static libraries (`PPULib` and `APULib`) in the CMake build system, making them easy to extract and reuse.
 
-## Test Suite
+## Automated Test Suite
 
 The emulator uses two test suites to validate correctness:
 
