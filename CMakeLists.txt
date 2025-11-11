@@ -6,17 +6,13 @@ project("GBEmu")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Clang-Tidy integration (optional; only runs if tool is available)
-find_program(CLANG_TIDY_EXE NAMES clang-tidy)
-if(CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-p=${CMAKE_BINARY_DIR}")
-endif()
-
 # Find SDL2
 find_package(PkgConfig REQUIRED)
 set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
 
-# On macOS, prefer static linking for SDL2 to avoid requiring users to install it
+# ============================================================================
+# SDL2 LIBRARY - link statically on mac and windows
+# ============================================================================
 if(APPLE)
     # Force pkg-config to return static library information
     set(ENV{PKG_CONFIG_STATIC} "1")
@@ -41,18 +37,12 @@ if(APPLE)
         message(FATAL_ERROR "Could not find static SDL2 library")
     endif()
 else()
-    # Windows and other platforms use regular dynamic linking
-    pkg_check_modules(SDL2 REQUIRED sdl2 IMPORTED_TARGET)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
     if(SDL2_STATIC_LIBRARIES)
         set(SDL2_LIBRARIES ${SDL2_STATIC_LIBRARIES})
-    elseif(NOT SDL2_LIBRARIES AND pkgcfg_lib_SDL2_SDL2)
-        set(SDL2_LIBRARIES ${pkgcfg_lib_SDL2_SDL2})
     endif()
-
     if(SDL2_STATIC_INCLUDE_DIRS)
         set(SDL2_INCLUDE_DIRS ${SDL2_STATIC_INCLUDE_DIRS})
-    elseif(NOT SDL2_INCLUDE_DIRS AND pkgcfg_include_dirs_SDL2)
-        set(SDL2_INCLUDE_DIRS ${pkgcfg_include_dirs_SDL2})
     endif()
 endif()
 
@@ -186,16 +176,13 @@ target_include_directories(SDLWindowLib PUBLIC
 )
 
 # Link SDL2 to SDLWindow library
+target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES})
+
 if(APPLE)
-    # On macOS, use static SDL2 libraries and link flags
-    target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES})
+    # On macOS, use static SDL2 libraries and link flags    
     if(SDL2_LDFLAGS)
         target_link_options(SDLWindowLib PUBLIC ${SDL2_LDFLAGS})
     endif()
-elseif(TARGET PkgConfig::SDL2)
-    target_link_libraries(SDLWindowLib PUBLIC PkgConfig::SDL2)
-elseif(SDL2_LIBRARIES)
-    target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES})
 endif()
 
 # Set compiler flags for SDLWindow library

@@ -32,6 +32,9 @@ public:
   // Callbacks for keyboard shortcuts
   void set_on_quick_save(std::function<void()> cb) { on_quick_save_ = std::move(cb); }
   void set_on_quick_load(std::function<void()> cb) { on_quick_load_ = std::move(cb); }
+  void set_on_open_rom(std::function<void()> cb) { on_open_rom_ = std::move(cb); }
+  void set_on_save(std::function<void()> cb) { on_save_ = std::move(cb); }
+  void set_on_exit(std::function<void()> cb) { on_exit_ = std::move(cb); }
 
   // Audio pause/resume methods (for blocking operations like file dialogs)
   void prepare_for_pause();  // Call before blocking operations
@@ -71,6 +74,9 @@ private:
   // Callbacks for keyboard shortcuts (not menu-triggered)
   std::function<void()> on_quick_save_;
   std::function<void()> on_quick_load_;
+  std::function<void()> on_open_rom_;
+  std::function<void()> on_save_;
+  std::function<void()> on_exit_;
 
   std::vector<int16_t> last_audio_samples_;
 };

@@ -148,51 +148,81 @@ bool SDLWindow::handleEvents(JoypadState& joypad_state) {
     if (event.type == SDL_QUIT) {
       return true;
     } else if (event.type == SDL_KEYDOWN) {
-      // Check for function keys (no modifier needed)
-      switch (event.key.keysym.sym) {
-        case SDLK_F5:
-          // Trigger Quick Save
-          if (on_quick_save_) {
-            on_quick_save_();
-          }
-          break;
-        case SDLK_F8:
-          // Trigger Quick Load
-          if (on_quick_load_) {
-            on_quick_load_();
-          }
-          break;
-        default:
-          // Handle gamepad keys
-          switch (event.key.keysym.sym) {
-            case SDLK_z:
-              keyboard_state_.a_pressed = true;
-              break;
-            case SDLK_x:
-              keyboard_state_.b_pressed = true;
-              break;
-            case SDLK_a:
-              keyboard_state_.select_pressed = true;
-              break;
-            case SDLK_s:
-              keyboard_state_.start_pressed = true;
-              break;
-            case SDLK_UP:
-              keyboard_state_.up_pressed = true;
-              break;
-            case SDLK_DOWN:
-              keyboard_state_.down_pressed = true;
-              break;
-            case SDLK_LEFT:
-              keyboard_state_.left_pressed = true;
-              break;
-            case SDLK_RIGHT:
-              keyboard_state_.right_pressed = true;
-              break;
-            default:
-              break;
-          }
-          break;
+      // Check for Ctrl modifier
+      bool ctrl_pressed = (event.key.keysym.mod & KMOD_CTRL) != 0;
+
+      if (ctrl_pressed) {
+        // Handle Ctrl+key shortcuts
+        switch (event.key.keysym.sym) {
+          case SDLK_o:
+          case SDLK_l:
+            // Trigger File -> Open
+            if (on_open_rom_) {
+              on_open_rom_();
+            }
+            break;
+          case SDLK_s:
+            // Trigger File -> Save
+            if (on_save_) {
+              on_save_();
+            }
+            break;
+          case SDLK_x:
+            // Trigger File -> Exit
+            if (on_exit_) {
+              on_exit_();
+            }
+            break;
+          default:
+            break;
+        }
+      } else {
+        // Check for function keys (no modifier needed)
+        switch (event.key.keysym.sym) {
+          case SDLK_F5:
+            // Trigger Quick Save
+            if (on_quick_save_) {
+              on_quick_save_();
+            }
+            break;
+          case SDLK_F8:
+            // Trigger Quick Load
+            if (on_quick_load_) {
+              on_quick_load_();
+            }
+            break;
+          default:
+            // Handle gamepad keys
+            switch (event.key.keysym.sym) {
+              case SDLK_z:
+                keyboard_state_.a_pressed = true;
+                break;
+              case SDLK_x:
+                keyboard_state_.b_pressed = true;
+                break;
+              case SDLK_a:
+                keyboard_state_.select_pressed = true;
+                break;
+              case SDLK_s:
+                keyboard_state_.start_pressed = true;
+                break;
+              case SDLK_UP:
+                keyboard_state_.up_pressed = true;
+                break;
+              case SDLK_DOWN:
+                keyboard_state_.down_pressed = true;
+                break;
+              case SDLK_LEFT:
+                keyboard_state_.left_pressed = true;
+                break;
+              case SDLK_RIGHT:
+                keyboard_state_.right_pressed = true;
+                break;
+              default:
+                break;
+            }
+            break;
+        }
       }
     } else if (event.type == SDL_KEYUP) {
       switch (event.key.keysym.sym) {

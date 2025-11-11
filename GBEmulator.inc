@@ -41,6 +41,33 @@ GBEmulator<UI>::GBEmulator(const char* rom_filename)
   // Set up SDL Window callbacks for keyboard shortcuts
   window_.set_on_quick_save([this]() { this->quick_save(); });
   window_.set_on_quick_load([this]() { this->quick_load(); });
+  
+  // Set up SDL Window callbacks for Ctrl+key shortcuts (trigger WindowsUI dialogs)
+  window_.set_on_open_rom([this]() {
+    window_.prepare_for_pause();
+    std::string file_path;
+    if (windows_ui_.show_open_file_dialog(window_.get_sdl_window(), 
+                                          "Game Boy ROM / Save State (*.gb;*.sav)\0*.gb;*.sav\0All Files (*.*)\0*.*\0",
+                                          "Open ROM", file_path)) {
+      this->open_rom(file_path);
+    }
+    window_.resume_from_pause();
+  });
+  
+  window_.set_on_save([this]() {
+    window_.prepare_for_pause();
+    std::string file_path;
+    if (windows_ui_.show_save_file_dialog(window_.get_sdl_window(),
+                                          "Save State (*.sav)\0*.sav\0All Files (*.*)\0*.*\0",
+                                          "Save State", file_path)) {
+      this->save(file_path);
+    }
+    window_.resume_from_pause();
+  });
+  
+  window_.set_on_exit([]() {
+    std::exit(0);
+  });
 
   window_.clear();
 
