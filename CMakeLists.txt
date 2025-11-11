@@ -6,27 +6,54 @@ project("GBEmu")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Clang-Tidy integration (optional; only runs if tool is available)
-find_program(CLANG_TIDY_EXE NAMES clang-tidy)
-if(CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-p=${CMAKE_BINARY_DIR}")
-endif()
-
 # Find SDL2
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(SDL2 REQUIRED sdl2)
+set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
 
-if(SDL2_STATIC_LIBRARIES)
-    set(SDL2_LIBRARIES ${SDL2_STATIC_LIBRARIES})
+# ============================================================================
+# SDL2 LIBRARY - link statically on mac and windows
+# ============================================================================
+if(APPLE)
+    # Force pkg-config to return static library information
+    set(ENV{PKG_CONFIG_STATIC} "1")
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+    
+    # Manually find the static library path
+    find_library(SDL2_STATIC_LIB NAMES libSDL2.a PATHS /opt/homebrew/lib /opt/homebrew/opt/sdl2/lib NO_DEFAULT_PATH)
+    if(SDL2_STATIC_LIB)
+        message(STATUS "Found static SDL2 library: ${SDL2_STATIC_LIB}")
+        
+        # Use the static library directly instead of -lSDL2
+        set(SDL2_LIBRARIES ${SDL2_STATIC_LIB})
+        set(SDL2_INCLUDE_DIRS ${SDL2_STATIC_INCLUDE_DIRS})
+        
+        # Extract only the framework link flags from LDFLAGS, excluding -lSDL2
+        string(REGEX REPLACE "-lSDL2[^ ]*" "" SDL2_FRAMEWORKS "${SDL2_STATIC_LDFLAGS_OTHER}")
+        set(SDL2_LDFLAGS ${SDL2_FRAMEWORKS})
+        
+        message(STATUS "SDL2_LIBRARIES: ${SDL2_LIBRARIES}")
+        message(STATUS "SDL2_LDFLAGS: ${SDL2_LDFLAGS}")
+    else()
+        message(FATAL_ERROR "Could not find static SDL2 library")
+    endif()
+else()
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+    if(SDL2_STATIC_LIBRARIES)
+        set(SDL2_LIBRARIES ${SDL2_STATIC_LIBRARIES})
+    endif()
+    if(SDL2_STATIC_INCLUDE_DIRS)
+        set(SDL2_INCLUDE_DIRS ${SDL2_STATIC_INCLUDE_DIRS})
+    endif()
 endif()
 
-if(SDL2_STATIC_INCLUDE_DIRS)
-    set(SDL2_INCLUDE_DIRS ${SDL2_STATIC_INCLUDE_DIRS})
-endif()
 
 # Add compiler flags for all C++ compilation
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -Werror -fno-omit-frame-pointer")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
+
+# Enable fully static linking only for MinGW builds on Windows
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
+endif()
 
 # Optional: Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -74,12 +101,10 @@ if(LIB_SOURCES)
         ${CMAKE_CURRENT_SOURCE_DIR}/rom
         ${CMAKE_CURRENT_SOURCE_DIR}/joypad
         ${CMAKE_CURRENT_SOURCE_DIR}/utils
-        ${CMAKE_CURRENT_SOURCE_DIR}/SDL
-        ${SDL2_INCLUDE_DIRS}
     )
 
-    # Link SDL2 to library, APULib, and PPULib
-    target_link_libraries(${PROJECT_NAME}Lib PUBLIC ${SDL2_LIBRARIES} APULib PPULib)
+    # Link libraries used by the emulator core
+    target_link_libraries(${PROJECT_NAME}Lib PUBLIC APULib PPULib)
 
     # Set compiler flags for library
     target_compile_options(${PROJECT_NAME}Lib PRIVATE
@@ -138,6 +163,7 @@ target_compile_options(PPULib PRIVATE
 # SDL WINDOW LIBRARY
 # ============================================================================
 
+
 add_library(SDLWindowLib STATIC SDL/SDLWindow.cpp)
 
 # Include directories for SDLWindow library
@@ -149,11 +175,15 @@ target_include_directories(SDLWindowLib PUBLIC
     ${SDL2_INCLUDE_DIRS}
 )
 
-# Link SDLWindow library to PPULib (this will inherit PPULib's include directories)
-target_link_libraries(SDLWindowLib PUBLIC PPULib)
-
 # Link SDL2 to SDLWindow library
-target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES} comdlg32)
+target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES})
+
+if(APPLE)
+    # On macOS, use static SDL2 libraries and link flags    
+    if(SDL2_LDFLAGS)
+        target_link_options(SDLWindowLib PUBLIC ${SDL2_LDFLAGS})
+    endif()
+endif()
 
 # Set compiler flags for SDLWindow library
 target_compile_options(SDLWindowLib PRIVATE
@@ -161,23 +191,93 @@ target_compile_options(SDLWindowLib PRIVATE
     $<$<CONFIG:Release>:-O3 -DNDEBUG>
 )
 
+
 # ============================================================================
-# MAIN EXECUTABLE
+# MAIN EXECUTABLE (Windows-only)
 # ============================================================================
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp AND LIB_SOURCES)
-    # Add Windows resource file if on Windows (but keep console attached)
-    if(WIN32)
-        set(RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/SDL/resource.rc)
-        add_executable(${PROJECT_NAME} WIN32 main.cpp ${RESOURCE_FILE})
-    else()
-        add_executable(${PROJECT_NAME} main.cpp)
-    endif()
+if(WIN32 AND LIB_SOURCES)
+    set(WINDOWS_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/windows_main)
+    set(WINDOWS_MAIN_SOURCES
+        ${WINDOWS_MAIN_DIR}/main.cpp
+        ${WINDOWS_MAIN_DIR}/WindowsUI.cpp
+    )
 
-    # Link with library, APULib, PPULib, and SDLWindow library
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib)
+    set(RESOURCE_FILE ${WINDOWS_MAIN_DIR}/resource.rc)
+    add_executable(${PROJECT_NAME} WIN32 ${WINDOWS_MAIN_SOURCES} ${RESOURCE_FILE})
+
+    target_include_directories(${PROJECT_NAME} PRIVATE ${WINDOWS_MAIN_DIR})
+
+    # Link with library, APULib, PPULib, SDLWindow library, and Windows libraries
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib comdlg32)
 
     # Set compiler flags for main executable
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-g -O0>
+        $<$<CONFIG:Release>:-O3 -DNDEBUG>
+    )
+endif()
+
+# ============================================================================
+# MAIN EXECUTABLE (macOS-only)
+# ============================================================================
+
+if(APPLE AND LIB_SOURCES)
+    set(MAC_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mac_main)
+    set(MAC_MAIN_SOURCES
+        ${MAC_MAIN_DIR}/main.cpp
+        ${MAC_MAIN_DIR}/MacUI.mm
+    )
+
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${MAC_MAIN_SOURCES})
+    set_source_files_properties(${MAC_MAIN_DIR}/MacUI.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+    
+    # Configure macOS app bundle properties
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.gbemu.GBEmu"
+        MACOSX_BUNDLE_BUNDLE_NAME "GBEmu"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_ICON_FILE "GBEmu.icns"
+    )
+    
+    # Copy icon file into the app bundle
+    set(ICON_FILE "${MAC_MAIN_DIR}/GBEmu.icns")
+    if(EXISTS ${ICON_FILE})
+        set_source_files_properties(${ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+        target_sources(${PROJECT_NAME} PRIVATE ${ICON_FILE})
+    else()
+        message(WARNING "Icon file not found: ${ICON_FILE}. App bundle will not have an icon.")
+    endif()
+
+    target_include_directories(${PROJECT_NAME} PRIVATE ${MAC_MAIN_DIR})
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${PROJECT_NAME}Lib
+        APULib
+        PPULib
+        SDLWindowLib
+        ${SDL2_LIBRARIES}
+        "-framework AppKit"
+        "-framework Cocoa"
+        "-framework Foundation"
+        "-framework UniformTypeIdentifiers"
+    )
+
+    # Add SDL2 link flags for static linking (includes required frameworks)
+    if(SDL2_LDFLAGS)
+        target_link_options(${PROJECT_NAME} PRIVATE ${SDL2_LDFLAGS})
+    endif()
+
+    target_include_directories(${PROJECT_NAME} PRIVATE ${MAC_MAIN_DIR} ${SDL2_INCLUDE_DIRS})
+    if(SDL2_LIBRARY_DIRS)
+        target_link_directories(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARY_DIRS})
+    endif()
+
+    # Add -ObjC flag to ensure Objective-C categories are linked properly with static libs
+    target_link_options(${PROJECT_NAME} PRIVATE "-ObjC")
+
     target_compile_options(${PROJECT_NAME} PRIVATE
         $<$<CONFIG:Debug>:-g -O0>
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
@@ -195,9 +295,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/test_blargg.cpp AND LIB_SOURCES)
     add_executable(test_blargg test/test_blargg.cpp)
     add_executable(test_mooneye test/test_mooneye.cpp)
 
-    # Link with library, APULib, PPULib, and SDLWindow library
-    target_link_libraries(test_blargg PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib)
-    target_link_libraries(test_mooneye PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib)
+    # Link with core libraries (and SDL window support on Windows)
+    target_link_libraries(test_blargg PRIVATE ${PROJECT_NAME}Lib APULib PPULib)
+    target_link_libraries(test_mooneye PRIVATE ${PROJECT_NAME}Lib APULib PPULib)
+    if(WIN32)
+        target_link_libraries(test_blargg PRIVATE SDLWindowLib)
+        target_link_libraries(test_mooneye PRIVATE SDLWindowLib)
+    endif()
 
     # Set compiler flags for test executable
     target_compile_options(test_blargg PRIVATE
@@ -357,7 +461,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/test_blargg.cpp AND LIB_SOURCES)
         # test/mooneye_roms/acceptance/boot_hwio-dmgABCmgb.gb #This one relies on startup timing of STAT being in the correct mode
         # test/mooneye_roms/acceptance/ppu/lcdon_timing-GS.gb #This is DMG only so I'm not sure I care.
         # test/mooneye_roms/acceptance/ppu/lcdon_write_timing-GS.gb
-        
+
 
         #test/mooneye_roms/misc/boot_div-A.gb #AGB only
         #test/mooneye_roms/misc/boot_div-cgb0.gb #CGB0 Only

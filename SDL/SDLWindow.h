@@ -1,13 +1,11 @@
 #pragma once
 
-#include <SDL2/SDL.h>
-#include <windows.h>
+#include <SDL.h>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
 #include "joypad_state.h"
-#include "rgb.h"
 
 class SDLWindow {
 public:
@@ -17,8 +15,6 @@ public:
   void clear();
   void present();
 
-  void draw_pixel(int x, int y, RGBValue color);
-  void draw_line(int x1, int y1, int x2, int y2, RGBValue color);
   void blit_screen(const uint32_t* pixels, size_t pitch);
   // Handle events and return true if window should close
   bool handleEvents(JoypadState& joypad_state);
@@ -33,27 +29,25 @@ public:
   // Get current queued audio sample count
   int get_queued_audio_samples() const;
 
-  // UI callbacks
-  void set_on_open_rom(std::function<void(const std::string&)> cb) { on_open_rom_ = std::move(cb); }
-  void set_on_restart_gameboy(std::function<void()> cb) { on_restart_gameboy_ = std::move(cb); }
-  void set_on_save(std::function<void(const std::string&)> cb) { on_save_ = std::move(cb); }
+  // Callbacks for keyboard shortcuts
   void set_on_quick_save(std::function<void()> cb) { on_quick_save_ = std::move(cb); }
   void set_on_quick_load(std::function<void()> cb) { on_quick_load_ = std::move(cb); }
-  void set_on_select_boot_rom(std::function<void(const std::string&)> cb) {
-    on_select_boot_rom_ = std::move(cb);
-  }
+  void set_on_open_rom(std::function<void()> cb) { on_open_rom_ = std::move(cb); }
+  void set_on_save(std::function<void()> cb) { on_save_ = std::move(cb); }
+  void set_on_exit(std::function<void()> cb) { on_exit_ = std::move(cb); }
 
-  // Error dialog
-  void show_error(const std::string& title, const std::string& message);
+  // Audio pause/resume methods (for blocking operations like file dialogs)
+  void prepare_for_pause();  // Call before blocking operations
+  void resume_from_pause();
 
-  // Allow Win32 thunk to invoke private handler
-  friend LRESULT CALLBACK SDLWindow_WndProcThunk(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+  // Scale factor management
+  void apply_scale_factor(uint32_t factor);
+  uint32_t get_max_scale_factor() const { return max_scale_factor_; }
+
+  // Get the underlying SDL_Window pointer (for platform-specific extensions)
+  SDL_Window* get_sdl_window() { return window_; }
 
 private:
-  // Win32 message handler (called from static thunk)
-  long long handle_window_message(void* hwnd, unsigned int msg, unsigned long long wparam, long long lparam);
-  void apply_scale_factor(uint32_t factor);
-
   SDL_Window* window_;
   SDL_Renderer* renderer_;
   SDL_Texture* texture_ = nullptr;
@@ -77,16 +71,12 @@ private:
   int base_width_ = 0;
   int base_height_ = 0;
 
-  // Callbacks
-  std::function<void(const std::string&)> on_open_rom_;
-  std::function<void()> on_restart_gameboy_;
-  std::function<void(const std::string&)> on_save_;
+  // Callbacks for keyboard shortcuts (not menu-triggered)
   std::function<void()> on_quick_save_;
   std::function<void()> on_quick_load_;
-  std::function<void(const std::string&)> on_select_boot_rom_;
-
-  void prepare_for_pause();  // Call before blocking operations
-  void resume_from_pause();
+  std::function<void()> on_open_rom_;
+  std::function<void()> on_save_;
+  std::function<void()> on_exit_;
 
   std::vector<int16_t> last_audio_samples_;
 };

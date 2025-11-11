@@ -1,9 +1,10 @@
-#include <inttypes.h>
+
 #include "GBEmulator.h"
+#include "MacUI.h"
 
 int main(int argc, char** argv) {
   const char* filename = argc > 1 ? argv[1] : nullptr;
-  GBEmulator emu(filename);
+  GBEmulator<MacUI> emu(filename);
 
   const char* boot_rom_filename = argc > 2 ? argv[2] : nullptr;
   if (boot_rom_filename) {
@@ -13,3 +14,4 @@ int main(int argc, char** argv) {
   emu.run();
   return 0;
 }
+

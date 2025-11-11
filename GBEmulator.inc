@@ -16,18 +16,59 @@ constexpr int GAMEBOY_SCREEN_HEIGHT = 144;  // Game Boy screen height in pixels
 constexpr int IDLE_LOOP_SLEEP_MS = 10;      // Sleep duration when no ROM is loaded
 }  // namespace
 
-GBEmulator::GBEmulator(const char* rom_filename)
+template <typename UI>
+GBEmulator<UI>::GBEmulator(const char* rom_filename)
     : window_("GBEmu", GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT) {
-  window_.set_on_open_rom([this](const std::string& path) { this->open_rom(path); });
-  window_.set_on_restart_gameboy([this]() {
+
+  // Initialize Windows UI with the SDL window
+  windows_ui_.initialize(window_.get_sdl_window(), window_.get_max_scale_factor());
+
+  // Set up Windows UI callbacks
+  windows_ui_.set_on_open_rom([this](const std::string& path) { this->open_rom(path); });
+  windows_ui_.set_on_restart_gameboy([this]() {
     if (!current_rom_path_.empty()) {
       open_rom(current_rom_path_);
     }
   });
-  window_.set_on_save([this](const std::string& path) { this->save(path); });
+  windows_ui_.set_on_save([this](const std::string& path) { this->save(path); });
+  windows_ui_.set_on_quick_save([this]() { this->quick_save(); });
+  windows_ui_.set_on_quick_load([this]() { this->quick_load(); });
+  windows_ui_.set_on_select_boot_rom([this](const std::string& path) { this->set_boot_rom(path); });
+  windows_ui_.set_on_scale_change([this](uint32_t factor) { window_.apply_scale_factor(factor); });
+  windows_ui_.set_on_prepare_pause([this]() { window_.prepare_for_pause(); });
+  windows_ui_.set_on_resume_pause([this]() { window_.resume_from_pause(); });
+
+  // Set up SDL Window callbacks for keyboard shortcuts
   window_.set_on_quick_save([this]() { this->quick_save(); });
   window_.set_on_quick_load([this]() { this->quick_load(); });
-  window_.set_on_select_boot_rom([this](const std::string& path) { this->set_boot_rom(path); });
+  
+  // Set up SDL Window callbacks for Ctrl+key shortcuts (trigger WindowsUI dialogs)
+  window_.set_on_open_rom([this]() {
+    window_.prepare_for_pause();
+    std::string file_path;
+    if (windows_ui_.show_open_file_dialog(window_.get_sdl_window(), 
+                                          "Game Boy ROM / Save State (*.gb;*.sav)\0*.gb;*.sav\0All Files (*.*)\0*.*\0",
+                                          "Open ROM", file_path)) {
+      this->open_rom(file_path);
+    }
+    window_.resume_from_pause();
+  });
+  
+  window_.set_on_save([this]() {
+    window_.prepare_for_pause();
+    std::string file_path;
+    if (windows_ui_.show_save_file_dialog(window_.get_sdl_window(),
+                                          "Save State (*.sav)\0*.sav\0All Files (*.*)\0*.*\0",
+                                          "Save State", file_path)) {
+      this->save(file_path);
+    }
+    window_.resume_from_pause();
+  });
+  
+  window_.set_on_exit([]() {
+    std::exit(0);
+  });
+
   window_.clear();
 
   if (rom_filename && rom_filename[0] != '\0') {
@@ -35,7 +76,8 @@ GBEmulator::GBEmulator(const char* rom_filename)
   }
 }
 
-std::string GBEmulator::get_rom_name_without_extension(const std::string& path) {
+template <typename UI>
+std::string GBEmulator<UI>::get_rom_name_without_extension(const std::string& path) {
   size_t last_dot = path.find_last_of('.');
   if (last_dot != std::string::npos) {
     return path.substr(0, last_dot);
@@ -43,7 +85,8 @@ std::string GBEmulator::get_rom_name_without_extension(const std::string& path) 
   return path;
 }
 
-void GBEmulator::open_rom(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::open_rom(const std::string& path) {
   // Convert relative path to absolute path
   std::string absolute_path;
   try {
@@ -91,7 +134,8 @@ void GBEmulator::open_rom(const std::string& path) {
   loop_.emplace(*loader_, bridge);
 }
 
-void GBEmulator::save(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::save(const std::string& path) {
   if (!loop_ || !loader_) {
     std::cerr << "Cannot save: No ROM loaded" << std::endl;
     return;
@@ -114,7 +158,8 @@ void GBEmulator::save(const std::string& path) {
   }
 }
 
-bool GBEmulator::load(const std::string& path) {
+template <typename UI>
+bool GBEmulator<UI>::load(const std::string& path) {
   try {
     SaveStateSerializer serializer(path, true);
     std::cout << "Save state loaded from: " << path << std::endl;
@@ -146,7 +191,8 @@ bool GBEmulator::load(const std::string& path) {
   }
 }
 
-void GBEmulator::quick_save() {
+template <typename UI>
+void GBEmulator<UI>::quick_save() {
   if (current_rom_name_.empty()) {
     std::cerr << "Cannot quick save: No ROM loaded" << std::endl;
     return;
@@ -156,7 +202,8 @@ void GBEmulator::quick_save() {
   save(quicksave_path);
 }
 
-void GBEmulator::quick_load() {
+template <typename UI>
+void GBEmulator<UI>::quick_load() {
   if (current_rom_name_.empty()) {
     show_error("Quick Load Error", "Cannot quick load: No ROM loaded");
     return;
@@ -175,7 +222,8 @@ void GBEmulator::quick_load() {
   load(quicksave_path);
 }
 
-void GBEmulator::set_boot_rom(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::set_boot_rom(const std::string& path) {
   boot_rom_path_ = path;
   std::cout << "Boot ROM set to: " << path << std::endl;
 
@@ -186,11 +234,13 @@ void GBEmulator::set_boot_rom(const std::string& path) {
   }
 }
 
-void GBEmulator::show_error(const std::string& title, const std::string& message) {
-  window_.show_error(title, message);
+template <typename UI>
+void GBEmulator<UI>::show_error(const std::string& title, const std::string& message) {
+  windows_ui_.show_error(window_.get_sdl_window(), title, message);
 }
 
-OSBridge GBEmulator::get_os_bridge() {
+template <typename UI>
+OSBridge GBEmulator<UI>::get_os_bridge() {
   OSBridge bridge;
   bridge.on_audio_generated = [this](const int16_t* samples, int num_samples) {
     window_.queue_audio(samples, num_samples);
@@ -207,7 +257,8 @@ OSBridge GBEmulator::get_os_bridge() {
   return bridge;
 }
 
-void GBEmulator::run() {
+template <typename UI>
+void GBEmulator<UI>::run() {
   JoypadState joypad_state = {false, false, false, false, false, false, false, false};
   while (true) {
     if (loop_) {

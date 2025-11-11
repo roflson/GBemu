@@ -47,7 +47,7 @@ constexpr uint8_t MAX_NOISE_CLOCK_SHIFT = 14;
 constexpr uint8_t WAVE_RAM_SIZE = 16;
 
 // Sample buffer size (must be power of 2 for efficiency)
-constexpr size_t SAMPLE_BUFFER_SIZE = 128;
+constexpr uint32_t SAMPLE_BUFFER_SIZE = 128;
 
 // Bit masks for extracting register values
 constexpr uint8_t LENGTH_COUNTER_MASK = 0x3F;  // 6 bits for most length counters
