@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include "SDLWindow.h"
+#include "WindowsUI.h"
 #include "main_loop.h"
 #include "rom_loader.h"
 
@@ -26,6 +27,7 @@ private:
   std::string get_rom_name_without_extension(const std::string& path);
 
   SDLWindow window_;
+  WindowsUI windows_ui_;
   std::string current_rom_path_;
   std::string current_rom_name_;  // ROM filename without path and extension
   std::string boot_rom_path_;     // Path to boot ROM file

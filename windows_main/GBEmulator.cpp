@@ -18,16 +18,29 @@ constexpr int IDLE_LOOP_SLEEP_MS = 10;      // Sleep duration when no ROM is loa
 
 GBEmulator::GBEmulator(const char* rom_filename)
     : window_("GBEmu", GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT) {
-  window_.set_on_open_rom([this](const std::string& path) { this->open_rom(path); });
-  window_.set_on_restart_gameboy([this]() {
+
+  // Initialize Windows UI with the SDL window
+  windows_ui_.initialize(window_.get_sdl_window(), window_.get_max_scale_factor());
+
+  // Set up Windows UI callbacks
+  windows_ui_.set_on_open_rom([this](const std::string& path) { this->open_rom(path); });
+  windows_ui_.set_on_restart_gameboy([this]() {
     if (!current_rom_path_.empty()) {
       open_rom(current_rom_path_);
     }
   });
-  window_.set_on_save([this](const std::string& path) { this->save(path); });
+  windows_ui_.set_on_save([this](const std::string& path) { this->save(path); });
+  windows_ui_.set_on_quick_save([this]() { this->quick_save(); });
+  windows_ui_.set_on_quick_load([this]() { this->quick_load(); });
+  windows_ui_.set_on_select_boot_rom([this](const std::string& path) { this->set_boot_rom(path); });
+  windows_ui_.set_on_scale_change([this](uint32_t factor) { window_.apply_scale_factor(factor); });
+  windows_ui_.set_on_prepare_pause([this]() { window_.prepare_for_pause(); });
+  windows_ui_.set_on_resume_pause([this]() { window_.resume_from_pause(); });
+
+  // Set up SDL Window callbacks for keyboard shortcuts
   window_.set_on_quick_save([this]() { this->quick_save(); });
   window_.set_on_quick_load([this]() { this->quick_load(); });
-  window_.set_on_select_boot_rom([this](const std::string& path) { this->set_boot_rom(path); });
+
   window_.clear();
 
   if (rom_filename && rom_filename[0] != '\0') {
@@ -187,7 +200,7 @@ void GBEmulator::set_boot_rom(const std::string& path) {
 }
 
 void GBEmulator::show_error(const std::string& title, const std::string& message) {
-  window_.show_error(title, message);
+  windows_ui_.show_error(window_.get_sdl_window(), title, message);
 }
 
 OSBridge GBEmulator::get_os_bridge() {

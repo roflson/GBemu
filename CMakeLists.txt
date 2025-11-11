@@ -80,18 +80,10 @@ if(LIB_SOURCES)
         ${CMAKE_CURRENT_SOURCE_DIR}/rom
         ${CMAKE_CURRENT_SOURCE_DIR}/joypad
         ${CMAKE_CURRENT_SOURCE_DIR}/utils
-        ${CMAKE_CURRENT_SOURCE_DIR}/SDL
     )
-
-    if(WIN32)
-        target_include_directories(${PROJECT_NAME}Lib PUBLIC ${SDL2_INCLUDE_DIRS})
-    endif()
 
     # Link libraries used by the emulator core
     target_link_libraries(${PROJECT_NAME}Lib PUBLIC APULib PPULib)
-    if(WIN32)
-        target_link_libraries(${PROJECT_NAME}Lib PUBLIC ${SDL2_LIBRARIES})
-    endif()
 
     # Set compiler flags for library
     target_compile_options(${PROJECT_NAME}Lib PRIVATE
@@ -166,7 +158,7 @@ if(WIN32)
     target_link_libraries(SDLWindowLib PUBLIC PPULib)
 
     # Link SDL2 to SDLWindow library
-    target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES} comdlg32)
+    target_link_libraries(SDLWindowLib PUBLIC ${SDL2_LIBRARIES})
 
     # Set compiler flags for SDLWindow library
     target_compile_options(SDLWindowLib PRIVATE
@@ -184,19 +176,16 @@ if(WIN32 AND LIB_SOURCES)
     set(WINDOWS_MAIN_SOURCES
         ${WINDOWS_MAIN_DIR}/main.cpp
         ${WINDOWS_MAIN_DIR}/GBEmulator.cpp
+        ${WINDOWS_MAIN_DIR}/WindowsUI.cpp
     )
 
     set(RESOURCE_FILE ${WINDOWS_MAIN_DIR}/resource.rc)
-    if(EXISTS ${RESOURCE_FILE})
-        add_executable(${PROJECT_NAME} WIN32 ${WINDOWS_MAIN_SOURCES} ${RESOURCE_FILE})
-    else()
-        add_executable(${PROJECT_NAME} WIN32 ${WINDOWS_MAIN_SOURCES})
-    endif()
+    add_executable(${PROJECT_NAME} WIN32 ${WINDOWS_MAIN_SOURCES} ${RESOURCE_FILE})
 
     target_include_directories(${PROJECT_NAME} PRIVATE ${WINDOWS_MAIN_DIR})
 
-    # Link with library, APULib, PPULib, and SDLWindow library
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib)
+    # Link with library, APULib, PPULib, SDLWindow library, and Windows libraries
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}Lib APULib PPULib SDLWindowLib comdlg32)
 
     # Set compiler flags for main executable
     target_compile_options(${PROJECT_NAME} PRIVATE
