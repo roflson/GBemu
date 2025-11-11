@@ -186,7 +186,7 @@ if(WIN32 AND LIB_SOURCES)
         ${WINDOWS_MAIN_DIR}/GBEmulator.cpp
     )
 
-    set(RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/SDL/resource.rc)
+    set(RESOURCE_FILE ${WINDOWS_MAIN_DIR}/resource.rc)
     if(EXISTS ${RESOURCE_FILE})
         add_executable(${PROJECT_NAME} WIN32 ${WINDOWS_MAIN_SOURCES} ${RESOURCE_FILE})
     else()
