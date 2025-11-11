@@ -3,10 +3,10 @@
 #include <optional>
 #include <string>
 #include "SDLWindow.h"
-#include "MacUI.h"
 #include "main_loop.h"
 #include "rom_loader.h"
 
+template <typename UI>
 class GBEmulator {
 public:
   // Construct with optional ROM filename; if provided, attempt to load and start loop
@@ -27,7 +27,7 @@ private:
   std::string get_rom_name_without_extension(const std::string& path);
 
   SDLWindow window_;
-  MacUI mac_ui_;
+  UI windows_ui_;
   std::string current_rom_path_;
   std::string current_rom_name_;  // ROM filename without path and extension
   std::string boot_rom_path_;     // Path to boot ROM file
@@ -35,3 +35,5 @@ private:
   std::optional<MainLoop> loop_;
 };
 
+
+#include "GBEmulator.inc"

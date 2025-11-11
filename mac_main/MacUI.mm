@@ -161,7 +161,6 @@ struct MacUI::Impl {
   std::function<void()> on_quick_load_;
   std::function<void(const std::string&)> on_select_boot_rom_;
   std::function<void(uint32_t)> on_scale_change_;
-  std::function<void()> on_exit_;
   std::function<void()> on_prepare_pause_;
   std::function<void()> on_resume_pause_;
 
@@ -529,9 +528,7 @@ struct MacUI::Impl {
 }
 
 - (void)exitApplication:(id)sender {
-  if (_impl && _impl->on_exit_) {
-    _impl->on_exit_();
-  }
+   std::exit(0);
   [NSApp terminate:nil];
 }
 
@@ -659,10 +656,6 @@ void MacUI::set_on_select_boot_rom(std::function<void(const std::string&)> cb) {
 
 void MacUI::set_on_scale_change(std::function<void(uint32_t)> cb) {
   impl_->on_scale_change_ = std::move(cb);
-}
-
-void MacUI::set_on_exit(std::function<void()> cb) {
-  impl_->on_exit_ = std::move(cb);
 }
 
 void MacUI::set_on_prepare_pause(std::function<void()> cb) {

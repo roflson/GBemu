@@ -179,7 +179,6 @@ if(WIN32 AND LIB_SOURCES)
     set(WINDOWS_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/windows_main)
     set(WINDOWS_MAIN_SOURCES
         ${WINDOWS_MAIN_DIR}/main.cpp
-        ${WINDOWS_MAIN_DIR}/GBEmulator.cpp
         ${WINDOWS_MAIN_DIR}/WindowsUI.cpp
     )
 
@@ -206,7 +205,6 @@ if(APPLE AND LIB_SOURCES)
     set(MAC_MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mac_main)
     set(MAC_MAIN_SOURCES
         ${MAC_MAIN_DIR}/main.cpp
-        ${MAC_MAIN_DIR}/GBEmulator.cpp
         ${MAC_MAIN_DIR}/MacUI.mm
     )
 

@@ -43,7 +43,6 @@ public:
   void set_on_quick_load(std::function<void()> cb);
   void set_on_select_boot_rom(std::function<void(const std::string&)> cb);
   void set_on_scale_change(std::function<void(uint32_t)> cb);
-  void set_on_exit(std::function<void()> cb);
   void set_on_prepare_pause(std::function<void()> cb);
   void set_on_resume_pause(std::function<void()> cb);
 

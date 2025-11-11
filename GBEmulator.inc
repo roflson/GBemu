@@ -16,7 +16,8 @@ constexpr int GAMEBOY_SCREEN_HEIGHT = 144;  // Game Boy screen height in pixels
 constexpr int IDLE_LOOP_SLEEP_MS = 10;      // Sleep duration when no ROM is loaded
 }  // namespace
 
-GBEmulator::GBEmulator(const char* rom_filename)
+template <typename UI>
+GBEmulator<UI>::GBEmulator(const char* rom_filename)
     : window_("GBEmu", GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT) {
 
   // Initialize Windows UI with the SDL window
@@ -48,7 +49,8 @@ GBEmulator::GBEmulator(const char* rom_filename)
   }
 }
 
-std::string GBEmulator::get_rom_name_without_extension(const std::string& path) {
+template <typename UI>
+std::string GBEmulator<UI>::get_rom_name_without_extension(const std::string& path) {
   size_t last_dot = path.find_last_of('.');
   if (last_dot != std::string::npos) {
     return path.substr(0, last_dot);
@@ -56,7 +58,8 @@ std::string GBEmulator::get_rom_name_without_extension(const std::string& path) 
   return path;
 }
 
-void GBEmulator::open_rom(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::open_rom(const std::string& path) {
   // Convert relative path to absolute path
   std::string absolute_path;
   try {
@@ -104,7 +107,8 @@ void GBEmulator::open_rom(const std::string& path) {
   loop_.emplace(*loader_, bridge);
 }
 
-void GBEmulator::save(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::save(const std::string& path) {
   if (!loop_ || !loader_) {
     std::cerr << "Cannot save: No ROM loaded" << std::endl;
     return;
@@ -127,7 +131,8 @@ void GBEmulator::save(const std::string& path) {
   }
 }
 
-bool GBEmulator::load(const std::string& path) {
+template <typename UI>
+bool GBEmulator<UI>::load(const std::string& path) {
   try {
     SaveStateSerializer serializer(path, true);
     std::cout << "Save state loaded from: " << path << std::endl;
@@ -159,7 +164,8 @@ bool GBEmulator::load(const std::string& path) {
   }
 }
 
-void GBEmulator::quick_save() {
+template <typename UI>
+void GBEmulator<UI>::quick_save() {
   if (current_rom_name_.empty()) {
     std::cerr << "Cannot quick save: No ROM loaded" << std::endl;
     return;
@@ -169,7 +175,8 @@ void GBEmulator::quick_save() {
   save(quicksave_path);
 }
 
-void GBEmulator::quick_load() {
+template <typename UI>
+void GBEmulator<UI>::quick_load() {
   if (current_rom_name_.empty()) {
     show_error("Quick Load Error", "Cannot quick load: No ROM loaded");
     return;
@@ -188,7 +195,8 @@ void GBEmulator::quick_load() {
   load(quicksave_path);
 }
 
-void GBEmulator::set_boot_rom(const std::string& path) {
+template <typename UI>
+void GBEmulator<UI>::set_boot_rom(const std::string& path) {
   boot_rom_path_ = path;
   std::cout << "Boot ROM set to: " << path << std::endl;
 
@@ -199,11 +207,13 @@ void GBEmulator::set_boot_rom(const std::string& path) {
   }
 }
 
-void GBEmulator::show_error(const std::string& title, const std::string& message) {
+template <typename UI>
+void GBEmulator<UI>::show_error(const std::string& title, const std::string& message) {
   windows_ui_.show_error(window_.get_sdl_window(), title, message);
 }
 
-OSBridge GBEmulator::get_os_bridge() {
+template <typename UI>
+OSBridge GBEmulator<UI>::get_os_bridge() {
   OSBridge bridge;
   bridge.on_audio_generated = [this](const int16_t* samples, int num_samples) {
     window_.queue_audio(samples, num_samples);
@@ -220,7 +230,8 @@ OSBridge GBEmulator::get_os_bridge() {
   return bridge;
 }
 
-void GBEmulator::run() {
+template <typename UI>
+void GBEmulator<UI>::run() {
   JoypadState joypad_state = {false, false, false, false, false, false, false, false};
   while (true) {
     if (loop_) {
