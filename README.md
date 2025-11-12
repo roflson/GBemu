@@ -219,6 +219,25 @@ The emulator uses two test suites to validate correctness:
 
 ## Building
 
+### Windows setup 
+Built on windows inside MSYS MINGW64 using GCC (Also used clangd for code completion so should be buildable with clang too). I have not tried to use Visual Studio and msvc as the compiler but it's unlikely to work.
+I used cmake and ninja on windows to build
+
+Packages required:
+```bash
+mingw-w64-x86_64-cmake
+mingw-w64-x86_64-SDL2
+mingw-w64-x86_64-gcc
+mingw-w64-x86_64-ninja
+mingw-w64-x86_64-pkgconf
+```
+
+### Mac setup
+Built on mac using the version of clang that comes with xcode natively installed.
+SDL2 should be installed via brew (or any other way you like)
+Then cmake can be used with make to build and run tests.
+
+
 ```bash
 mkdir build
 cd build
@@ -233,11 +252,6 @@ cd build
 ctest --output-on-failure
 ```
 
-Or use the custom target:
-```bash
-cmake --build . --target run_tests
-```
-
 ## Status Legend
 
 - ✅ **Passing** - Test passes successfully
@@ -246,5 +260,5 @@ cmake --build . --target run_tests
 ## Future plans
 - Adding full CGB support
 - Adding RetroAchievements.org support
-- MAC & Linux support
+- Linux support
 

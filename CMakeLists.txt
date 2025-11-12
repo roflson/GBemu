@@ -48,7 +48,7 @@ endif()
 
 
 # Add compiler flags for all C++ compilation
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -Werror -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -Werror")
 
 # Enable fully static linking only for MinGW builds on Windows
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
