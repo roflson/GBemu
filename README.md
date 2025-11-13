@@ -11,7 +11,8 @@ A high-performance Game Boy (DMG-only) emulator written in C++20, featuring a mo
  - **Boot ROM support**
  - **Modular: APU and PPU can be plugged into any emulator with no other dependencies**
  - **Accurate, passes every blargg and almost every mooneye test for DMG**
- - Windows only for now, but code structured to easily swap OS out.
+ - **Windows & Mac Support**
+   - If downloading mac DMG, please use `xattr -cr` on the dmg as it is not signed by Apple, or build from source.
  - **Fully automated Blargg & Mooneye testing (See below)**
  - **Fast**
 
